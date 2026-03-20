@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>تسجيل الدخول - الهيثم</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--gold:#d4af37;--text:#f1f5f9;--muted:#94a3b8;--danger:#f87171;--success:#4ade80;--font:'DM Sans',sans-serif;--font-disp:'Playfair Display',serif;--trans:all .22s cubic-bezier(.4,0,.2,1);}
+[data-theme="light"]{--bg:#f8fafc;--surface:#ffffff;--surface2:#f1f5f9;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;}
+.login-shell{min-height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;}
+.login-shell::before{content:'';position:absolute;top:-200px;right:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(212,175,55,.06),transparent 70%);pointer-events:none;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:48px 44px;width:100%;max-width:420px;box-shadow:0 40px 80px rgba(0,0,0,.3);position:relative;}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:36px;}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--gold),#8B6914);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#000;font-weight:700;flex-shrink:0;}
+.logo-text{font-family:var(--font-disp);font-size:22px;font-weight:600;color:var(--text);}
+.login-title{font-family:var(--font-disp);font-size:24px;font-weight:600;margin-bottom:6px;}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:30px;}
+.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.input-wrap{position:relative;}
+.input-wrap i{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;}
+.input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 36px 9px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:var(--trans);width:100%;}
+.input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.1);}
+.input::placeholder{color:var(--muted);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 16px;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:var(--trans);width:100%;}
+.btn-primary{background:var(--gold);color:#000;}
+.btn-primary:hover{background:#e8c542;box-shadow:0 4px 20px rgba(212,175,55,.3);}
+.divider{height:1px;background:var(--border);margin:24px 0;}
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.alert-danger{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.2);color:var(--danger);}
+.alert-warning{background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.2);color:var(--warn);}
+.toggle-wrap{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+.toggle{position:relative;width:38px;height:20px;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--surface2);border:1px solid var(--border);border-radius:99px;cursor:pointer;transition:var(--trans);}
+.toggle-slider::after{content:'';position:absolute;width:14px;height:14px;right:2px;top:2px;background:var(--muted);border-radius:50%;transition:var(--trans);}
+.toggle input:checked + .toggle-slider{background:var(--gold);border-color:var(--gold);}
+.toggle input:checked + .toggle-slider::after{transform:translateX(-18px);background:#000;}
+</style>
+</head>
+<body>
+<div class="login-shell">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">⚖</div>
+      <div>
+        <div class="logo-text">الهيثم</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:-2px;">نظام إدارة التوكيلات</div>
+      </div>
+    </div>
+
+    <div class="login-title">تسجيل الدخول</div>
+    <div class="login-sub">بوابة مكتب المحاماة المرخص — رشيد. اسكندرية. مصر</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            <i class="fas fa-exclamation-circle"></i>{{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('auth.login') }}" style="display:flex;flex-direction:column;gap:4px;">
+      <div class="form-group">
+        <label>اسم المستخدم</label>
+        <div class="input-wrap">
+          <i class="fas fa-user"></i>
+          <input class="input" type="text" name="username" placeholder="admin" required autofocus/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <div class="input-wrap">
+          <i class="fas fa-lock"></i>
+          <input class="input" type="password" name="password" placeholder="••••••••" required/>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0 16px;">
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);text-transform:none;letter-spacing:0;cursor:pointer;">
+          <input type="checkbox" name="remember" style="accent-color:var(--gold)"/>
+          <span>تذكرني</span>
+        </label>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-right-to-bracket"></i> تسجيل الدخول
+      </button>
+    </form>
+
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
+      <div class="toggle-wrap">
+        <i class="fas fa-moon" style="font-size:11px"></i>
+        <label class="toggle"><input type="checkbox" id="themeToggle" onchange="toggleTheme(this)"/><span class="toggle-slider"></span></label>
+        <i class="fas fa-sun" style="font-size:11px"></i>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:20px;">© 2025 الهيثم. جميع الحقوق محفوظة.</div>
+  </div>
+</div>
+<script>
+function toggleTheme(el){document.documentElement.setAttribute('data-theme',el.checked?'light':'dark');localStorage.setItem('theme',el.checked?'light':'dark');}
+(function(){const t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);const tog=document.getElementById('themeToggle');if(tog)tog.checked=t==='light';})();
+</script>
+</body>
+</html>

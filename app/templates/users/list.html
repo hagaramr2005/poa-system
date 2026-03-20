@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}المستخدمون{% endblock %}
+{% block breadcrumb %}المستخدمون{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><div class="page-title">إدارة المستخدمين</div><div class="page-sub">{{ users|length }} مستخدم مسجل</div></div>
+  <a href="{{ url_for('users.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-user-plus"></i> مستخدم جديد</a>
+</div>
+<div class="card" style="padding:0;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>#</th><th>المستخدم</th><th>اسم المستخدم</th><th>البريد الإلكتروني</th><th>الصلاحية</th><th>الحالة</th><th>آخر دخول</th><th>إجراءات</th></tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td class="mono">{{ loop.index }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:12px;">
+              {% if user.avatar_filename %}
+              <img src="{{ url_for('users.serve_avatar', filename=user.avatar_filename) }}" alt="{{ user.full_name }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0;"/>
+              {% else %}
+              <div class="avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;">{{ user.full_name[:2] }}</div>
+              {% endif %}
+              <div>
+                <div style="font-weight:600;font-size:13px;">{{ user.full_name }}</div>
+                {% if user.id == current_user.id %}<div style="font-size:10px;color:var(--gold);">أنت</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="mono">{{ user.username }}</td>
+          <td style="color:var(--muted);font-size:12px;">{{ user.email }}</td>
+          <td>{% if user.role == 'admin' %}<span class="badge gold"><i class="fas fa-crown" style="font-size:9px;"></i> مدير</span>{% else %}<span class="badge blue">موظف</span>{% endif %}</td>
+          <td>{% if user.is_active %}<span class="badge green">نشط</span>{% else %}<span class="badge red">معطّل</span>{% endif %}</td>
+          <td class="mono" style="font-size:11px;">{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '—' }}</td>
+          <td>
+            <div style="display:flex;gap:4px;">
+              <a href="{{ url_for('users.edit', user_id=user.id) }}" class="icon-btn" title="تعديل"><i class="fas fa-pen"></i></a>
+              {% if user.id != current_user.id %}
+              <form method="post" action="{{ url_for('users.toggle_active', user_id=user.id) }}" style="display:inline;">
+                <button type="submit" class="icon-btn" style="color:{% if user.is_active %}var(--danger){% else %}var(--success){% endif %};" title="{% if user.is_active %}تعطيل{% else %}تفعيل{% endif %}">
+                  <i class="fas fa-{% if user.is_active %}ban{% else %}check{% endif %}"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

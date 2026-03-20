@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{% if user %}تعديل مستخدم{% else %}مستخدم جديد{% endif %}{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('users.index') }}" style="color:var(--muted);text-decoration:none;">المستخدمون</a> <i class="fas fa-chevron-left" style="font-size:10px;opacity:.5;margin:0 4px;"></i> {% if user %}تعديل{% else %}جديد{% endif %}{% endblock %}
+{% block extra_css %}
+<style>
+.avatar-upload-wrap{position:relative;width:110px;height:110px;cursor:pointer;}
+.avatar-upload-img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(212,175,55,.25);display:block;}
+.avatar-initials{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a5c0a);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#000;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(212,175,55,.25);}
+.avatar-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;opacity:0;transition:opacity .2s;}
+.avatar-upload-wrap:hover .avatar-overlay{opacity:1;}
+.avatar-overlay i{font-size:20px;color:#fff;}
+.avatar-overlay span{font-size:10px;color:rgba(255,255,255,.8);font-weight:600;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><div class="page-title">{% if user %}تعديل: {{ user.full_name }}{% else %}إضافة مستخدم جديد{% endif %}</div></div>
+  <a href="{{ url_for('users.index') }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-right"></i> العودة</a>
+</div>
+<div style="max-width:640px;">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" action="{% if user %}{{ url_for('users.edit', user_id=user.id) }}{% else %}{{ url_for('users.create') }}{% endif %}">
+      <div style="display:flex;align-items:center;gap:24px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+        <div class="avatar-upload-wrap" onclick="document.getElementById('avatarInput').click();" title="تغيير الصورة">
+          {% if user and user.avatar_filename %}
+          <img class="avatar-upload-img" id="avatarPreview" src="{{ url_for('users.serve_avatar', filename=user.avatar_filename) }}" alt="{{ user.full_name }}"/>
+          {% else %}
+          <div class="avatar-initials" id="avatarInitials">{{ user.full_name[:2] if user else '؟' }}</div>
+          <img class="avatar-upload-img" id="avatarPreview" src="" alt="" style="display:none;"/>
+          {% endif %}
+          <div class="avatar-overlay"><i class="fas fa-camera"></i><span>تغيير</span></div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:15px;margin-bottom:4px;">{% if user %}{{ user.full_name }}{% else %}مستخدم جديد{% endif %}</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">اضغط على الصورة لتغييرها — PNG، JPG، WEBP (حتى 5MB)</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('avatarInput').click();"><i class="fas fa-upload"></i> رفع صورة</button>
+            {% if user and user.avatar_filename %}
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeAvatar()"><i class="fas fa-trash"></i> حذف الصورة</button>
+            {% endif %}
+          </div>
+        </div>
+        <input type="file" id="avatarInput" name="avatar" accept=".png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="previewAvatar(this)"/>
+        <input type="hidden" id="removeAvatarField" name="remove_avatar" value="0"/>
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>الاسم الكامل *</label>
+          <input class="input" type="text" name="full_name" required value="{{ form_data.get('full_name') or (user.full_name if user else '') }}" placeholder="محمد أحمد علي" oninput="updateInitials(this.value)"/>
+        </div>
+        {% if not user %}
+        <div class="form-group">
+          <label>اسم المستخدم *</label>
+          <input class="input" type="text" name="username" required value="{{ form_data.get('username','') }}" placeholder="mohammed.ali"/>
+        </div>
+        {% endif %}
+        <div class="form-group {% if not user %}{% else %}full{% endif %}">
+          <label>البريد الإلكتروني *</label>
+          <input class="input" type="email" name="email" required value="{{ form_data.get('email') or (user.email if user else '') }}" placeholder="email@example.com"/>
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور {% if not user %}*{% else %}(اتركها فارغة للإبقاء الحالية){% endif %}</label>
+          <input class="input" type="password" name="password" {% if not user %}required{% endif %} placeholder="••••••••" minlength="6"/>
+        </div>
+        <div class="form-group">
+          <label>الصلاحية</label>
+          <select class="input" name="role">
+            <option value="employee" {% if (form_data.get('role') or (user.role if user else 'employee')) == 'employee' %}selected{% endif %}>موظف</option>
+            <option value="admin" {% if (form_data.get('role') or (user.role if user else '')) == 'admin' %}selected{% endif %}>مدير النظام</option>
+          </select>
+        </div>
+        {% if user %}
+        <div class="form-group">
+          <label>الحالة</label>
+          <select class="input" name="is_active">
+            <option value="1" {% if user.is_active %}selected{% endif %}>نشط</option>
+            <option value="0" {% if not user.is_active %}selected{% endif %}>معطّل</option>
+          </select>
+        </div>
+        {% endif %}
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+        <a href="{{ url_for('users.index') }}" class="btn btn-outline">إلغاء</a>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> {% if user %}حفظ التعديلات{% else %}إنشاء المستخدم{% endif %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function previewAvatar(input){if(!input.files||!input.files[0])return;const file=input.files[0];if(file.size>5*1024*1024){showToast('حجم الصورة يجب أن يكون أقل من 5MB','error');input.value='';return;}const reader=new FileReader();reader.onload=e=>{const preview=document.getElementById('avatarPreview'),initials=document.getElementById('avatarInitials');preview.src=e.target.result;preview.style.display='block';if(initials)initials.style.display='none';document.getElementById('removeAvatarField').value='0';};reader.readAsDataURL(file);}
+function removeAvatar(){const preview=document.getElementById('avatarPreview'),initials=document.getElementById('avatarInitials');document.getElementById('avatarInput').value='';document.getElementById('removeAvatarField').value='1';preview.src='';preview.style.display='none';if(initials)initials.style.display='flex';showToast('سيتم حذف الصورة عند الحفظ','info');}
+function updateInitials(name){const initials=document.getElementById('avatarInitials'),preview=document.getElementById('avatarPreview');if(initials&&preview.style.display==='none')initials.textContent=name.slice(0,2)||'؟';}
+</script>
+{% endblock %}

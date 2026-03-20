@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}إحصائيات متقدمة{% endblock %}
+{% block breadcrumb %}إحصائيات متقدمة{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">إحصائيات متقدمة</div>
+    <div class="page-sub">تحليل شامل لبيانات {{ total }} توكيل</div>
+  </div>
+  <a href="{{ url_for('reports.index') }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-right"></i> العودة</a>
+</div>
+
+{% if expiring_30 > 0 %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  <i class="fas fa-triangle-exclamation"></i>
+  <strong>{{ expiring_30 }} توكيل</strong> ستنتهي خلال 30 يوم —
+  <a href="{{ url_for('poa.expiring', days=30) }}" style="color:var(--warn);font-weight:600;">عرض التفاصيل</a>
+</div>
+{% endif %}
+
+<div class="grid-2">
+  <!-- أكتر موكلين -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-title"><i class="fas fa-user" style="color:var(--gold);margin-left:6px;"></i> أكثر الموكلين توكيلاً</div>
+    </div>
+    {% set max_c = top_clients[0][1] if top_clients else 1 %}
+    {% for name, cnt in top_clients %}
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+        <span style="font-weight:500;">{{ name }}</span>
+        <span style="color:var(--gold);font-weight:600;">{{ cnt }}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ (cnt/max_c*100)|round }}%;background:{% if loop.first %}var(--gold){% else %}rgba(212,175,55,.5){% endif %};"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- أكتر السنوات -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-title"><i class="fas fa-calendar" style="color:var(--info);margin-left:6px;"></i> أكثر السنوات نشاطاً</div>
+    </div>
+    {% set max_y = top_years[0][1] if top_years else 1 %}
+    {% for year, cnt in top_years %}
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+        <span style="font-weight:500;">{{ year }}</span>
+        <span style="color:var(--info);font-weight:600;">{{ cnt }}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ (cnt/max_y*100)|round }}%;background:var(--info);"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- أكتر مكاتب التوثيق -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-title"><i class="fas fa-building" style="color:var(--success);margin-left:6px;"></i> أكثر مكاتب التوثيق</div>
+    </div>
+    {% set max_n = top_notary[0][1] if top_notary else 1 %}
+    {% for office, cnt in top_notary %}
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+        <span style="font-weight:500;">{{ office }}</span>
+        <span style="color:var(--success);font-weight:600;">{{ cnt }}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ (cnt/max_n*100)|round }}%;background:var(--success);"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- أكتر المحامين -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-title"><i class="fas fa-scale-balanced" style="color:var(--warn);margin-left:6px;"></i> أكثر المحامين توكيلاً</div>
+    </div>
+    {% if top_lawyers %}
+    {% set max_l = top_lawyers[0][1] if top_lawyers else 1 %}
+    {% for lawyer, cnt in top_lawyers %}
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+        <span style="font-weight:500;">{{ lawyer }}</span>
+        <span style="color:var(--warn);font-weight:600;">{{ cnt }}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ (cnt/max_l*100)|round }}%;background:var(--warn);"></div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">لم يتم تسجيل محامين بعد</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

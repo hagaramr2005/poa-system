@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% block title %}التوكيلات{% endblock %}
+{% block breadcrumb %}التوكيلات{% endblock %}
+{% block extra_css %}
+<style>
+.search-wrapper{position:relative;width:100%;}
+.autocomplete-dropdown{position:absolute;top:calc(100% + 4px);right:0;left:0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.45);z-index:999;overflow:hidden;animation:fadeDown .15s ease;display:none;}
+.ac-item{padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .12s;font-size:13px;border-bottom:1px solid var(--border);}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.active{background:var(--surface2);}
+.ac-item:hover .ac-name,.ac-item.active .ac-name{color:var(--gold);}
+.ac-icon{width:28px;height:28px;border-radius:7px;background:rgba(212,175,55,.12);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.ac-name{font-size:13px;font-weight:600;transition:color .1s;}
+.ac-sub{font-size:11px;color:var(--muted);}
+mark.hl{background:rgba(212,175,55,.25);color:var(--gold);border-radius:3px;padding:0 2px;font-weight:600;}
+.quick-stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.qs-chip{display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:99px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;transition:var(--trans);text-decoration:none;color:var(--muted);background:var(--surface);}
+.qs-chip:hover{border-color:var(--gold);color:var(--gold);}
+.qs-chip.active{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.08);}
+.qs-chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.filter-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;transition:var(--trans);}
+.filter-panel:focus-within{border-color:rgba(212,175,55,.4);}
+.empty-state{text-align:center;padding:60px 20px;}
+.empty-icon{width:64px;height:64px;border-radius:16px;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;color:var(--muted);}
+tbody tr{cursor:pointer;}
+.qr-row-btn{width:26px;height:26px;border-radius:6px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.2);color:var(--gold);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:10px;transition:all .2s;}
+.qr-row-btn:hover{background:rgba(212,175,55,.18);}
+@media print{.sidebar,.topbar,.no-print,#toast,.modal-overlay{display:none!important;}.app-shell{display:block!important;}.main{overflow:visible!important;}.content{padding:0!important;}body{color:#000!important;font-size:11px!important;}table{font-size:10px!important;}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">جميع التوكيلات</div>
+    <div class="page-sub" id="resultCount">{{ pagination.total }} توكيل مسجل</div>
+  </div>
+  <div style="display:flex;gap:8px;" class="no-print">
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('reports.index') }}" class="btn btn-outline btn-sm"><i class="fas fa-file-excel" style="color:var(--success);"></i> تصدير</a>
+    {% endif %}
+    <a href="{{ url_for('poa.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة توكيل</a>
+  </div>
+</div>
+
+<div class="quick-stats stagger">
+  <a href="{{ url_for('poa.index') }}" class="qs-chip {% if not request.args.get('status') and not request.args.get('activation_status') %}active{% endif %}">
+    <i class="fas fa-layer-group" style="font-size:11px;"></i> الكل ({{ pagination.total }})
+  </a>
+  <a href="{{ url_for('poa.index', status='ساري') }}" class="qs-chip {% if request.args.get('status')=='ساري' %}active{% endif %}">
+    <span class="dot" style="background:var(--success);"></span> سارية
+  </a>
+  <a href="{{ url_for('poa.index', status='منتهي') }}" class="qs-chip {% if request.args.get('status')=='منتهي' %}active{% endif %}">
+    <span class="dot" style="background:var(--danger);"></span> منتهية
+  </a>
+  <a href="{{ url_for('poa.index', status='معلق') }}" class="qs-chip {% if request.args.get('status')=='معلق' %}active{% endif %}">
+    <span class="dot" style="background:var(--warn);"></span> معلقة
+  </a>
+  <a href="{{ url_for('poa.index', activation_status='غير مفعل') }}" class="qs-chip {% if request.args.get('activation_status')=='غير مفعل' %}active{% endif %}">
+    <i class="fas fa-toggle-off" style="font-size:11px;"></i> غير مفعلة
+  </a>
+</div>
+
+<form method="get" action="{{ url_for('poa.index') }}" id="filterForm">
+  <div class="filter-panel no-print">
+    <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-bottom:12px;">
+      <div class="search-wrapper" id="searchWrapper">
+        <div class="search-box" style="width:100%;padding:8px 14px;">
+          <i class="fas fa-magnifying-glass" id="searchIcon"></i>
+          <input type="text" name="q" id="searchInput" placeholder="ابحث بالاسم، رقم التوكيل، الرقم القومي…"
+                 value="{{ request.args.get('q','') }}" autocomplete="off" style="width:100%;font-size:14px;"/>
+          <button type="button" id="clearSearch"
+                  style="display:{% if request.args.get('q') %}flex{% else %}none{% endif %};background:none;border:none;color:var(--muted);cursor:pointer;padding:0;width:20px;height:20px;align-items:center;justify-content:center;"
+                  onclick="clearSearchInput()">
+            <i class="fas fa-xmark" style="font-size:11px;"></i>
+          </button>
+        </div>
+        <div class="autocomplete-dropdown" id="acDropdown"></div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button type="submit" class="btn btn-primary btn-sm" style="padding:8px 16px;"><i class="fas fa-search"></i> بحث</button>
+        <a href="{{ url_for('poa.index') }}" class="btn btn-outline btn-sm" style="padding:8px 12px;" title="مسح"><i class="fas fa-rotate-left"></i></a>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <select name="year" class="input" style="font-size:12px;" onchange="this.form.submit()">
+        <option value=""><i class="fas fa-calendar-days" style="font-size:11px;"></i> كل السنوات</option>
+        {% for y in range(2025,1999,-1) %}
+        <option value="{{ y }}" {% if request.args.get('year')==y|string %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" class="input" style="font-size:12px;" onchange="this.form.submit()">
+        <option value=""><i class="fas fa-bookmark" style="font-size:11px;"></i> كل الحالات</option>
+        <option value="ساري" {% if request.args.get('status')=='ساري' %}selected{% endif %}><i class="fas fa-circle-check" style="font-size:11px;color:var(--success);"></i> ساري</option>
+        <option value="منتهي" {% if request.args.get('status')=='منتهي' %}selected{% endif %}><i class="fas fa-circle-xmark" style="font-size:11px;color:var(--danger);"></i> منتهي</option>
+        <option value="معلق" {% if request.args.get('status')=='معلق' %}selected{% endif %}><i class="fas fa-circle-pause" style="font-size:11px;color:var(--warn);"></i> معلق</option>
+      </select>
+      <select name="activation_status" class="input" style="font-size:12px;" onchange="this.form.submit()">
+        <option value=""><i class="fas fa-bolt" style="font-size:11px;"></i> كل التفعيلات</option>
+        <option value="مفعل" {% if request.args.get('activation_status')=='مفعل' %}selected{% endif %}>مفعل</option>
+        <option value="غير مفعل" {% if request.args.get('activation_status')=='غير مفعل' %}selected{% endif %}>غير مفعل</option>
+      </select>
+      <select name="letter" class="input" style="font-size:12px;" onchange="this.form.submit()">
+        <option value=""><i class="fas fa-font" style="font-size:11px;"></i> كل الحروف</option>
+        {% for l in ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ى'] %}
+        <option value="{{ l }}" {% if request.args.get('letter')==l %}selected{% endif %}>{{ l }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% set has_filters = request.args.get('q') or request.args.get('year') or request.args.get('status') or request.args.get('activation_status') or request.args.get('letter') %}
+    {% if has_filters %}
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:11px;color:var(--muted);">فلاتر نشطة:</span>
+      {% if request.args.get('q') %}<span class="badge gold"><i class="fas fa-magnifying-glass" style="font-size:10px;"></i> "{{ request.args.get('q') }}"</span>{% endif %}
+      {% if request.args.get('year') %}<span class="badge blue"><i class="fas fa-calendar-days" style="font-size:10px;"></i> {{ request.args.get('year') }}</span>{% endif %}
+      {% if request.args.get('status') %}<span class="badge green"><i class="fas fa-bookmark" style="font-size:10px;"></i> {{ request.args.get('status') }}</span>{% endif %}
+      {% if request.args.get('letter') %}<span class="badge orange"><i class="fas fa-font" style="font-size:10px;"></i> {{ request.args.get('letter') }}</span>{% endif %}
+      <a href="{{ url_for('poa.index') }}" class="badge red" style="text-decoration:none;cursor:pointer;"><i class="fas fa-xmark"></i> مسح الكل</a>
+    </div>
+    {% endif %}
+  </div>
+</form>
+
+<div class="card" style="padding:0;overflow:hidden;">
+  <div class="table-wrap">
+    <table id="poaTable">
+      <thead>
+        <tr>
+          <th style="width:44px;">#</th>
+          <th>رقم المكتب</th>
+          <th>اسم الموكل</th>
+          <th>رقم التوكيل</th>
+          <th>مسمى التوكيل</th>
+          <th>الحرف</th>
+          <th>السنة</th>
+          <th>مكتب التوثيق</th>
+          <th>الحالة</th>
+          <th>التفعيل</th>
+          <th style="width:40px;" class="no-print"><i class="fas fa-paperclip" style="color:var(--muted);font-size:11px;"></i></th>
+          <th style="width:110px;" class="no-print">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="poaTableBody">
+        {% set q = request.args.get('q','') %}
+        {% for p in pagination.items %}
+        <tr onclick="window.location='{{ url_for('poa.view', poa_id=p.id) }}'">
+          <td class="mono" style="color:var(--muted);">{{ (pagination.page-1)*pagination.per_page + loop.index }}</td>
+          <td><span class="mono" style="color:var(--gold);font-weight:700;">#{{ p.office_number }}</span></td>
+          <td><div style="font-weight:600;font-size:13px;">{{ p.display_name }}</div></td>
+          <td class="mono" style="font-size:12px;">{{ p.poa_number }}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:12px;">{{ p.poa_title }}</td>
+          <td>{% if p.letter %}<span class="badge gold" style="font-size:11px;">{{ p.letter }}</span>{% else %}<span style="color:var(--muted);">—</span>{% endif %}</td>
+          <td class="mono" style="font-size:12px;">{{ p.year or '—' }}</td>
+          <td style="color:var(--muted);font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis;">{{ p.notary_office or '—' }}</td>
+          <td><span class="badge {% if p.computed_status=='ساري' %}green{% elif p.computed_status=='منتهي' %}red{% else %}orange{% endif %}" style="font-size:11px;"><i class="fas fa-circle" style="font-size:5px;"></i> {{ p.computed_status }}</span></td>
+          <td><span class="badge {% if p.activation_status=='مفعل' %}green{% else %}red{% endif %}" style="font-size:10px;">{{ p.activation_status }}</span></td>
+          <td style="text-align:center;" onclick="event.stopPropagation()" class="no-print">
+            {% if p.attachment_filename %}<a href="{{ url_for('poa.download_attachment', poa_id=p.id) }}" target="_blank" style="color:var(--info);" title="المرفق"><i class="fas fa-paperclip"></i></a>
+            {% else %}<span style="color:var(--border);">—</span>{% endif %}
+          </td>
+          <td onclick="event.stopPropagation()" class="no-print">
+            <div style="display:flex;gap:4px;align-items:center;">
+              <a href="{{ url_for('poa.view', poa_id=p.id) }}" class="icon-btn" title="عرض"><i class="fas fa-eye"></i></a>
+              <button class="qr-row-btn" title="QR" onclick="openQrModal({{ p.id }},'مكتب #{{ p.office_number }} — {{ p.display_name }}')"><i class="fas fa-qrcode"></i></button>
+              {% if current_user.is_admin %}
+              <a href="{{ url_for('poa.edit', poa_id=p.id) }}" class="icon-btn" title="تعديل"><i class="fas fa-pen"></i></a>
+              <button class="icon-btn" style="color:var(--danger);" onclick="confirmDelete('{{ url_for('poa.delete', poa_id=p.id) }}')" title="حذف"><i class="fas fa-trash"></i></button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="12" style="padding:0;border:none;">
+          <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-search"></i></div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:6px;">لا توجد نتائج</div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">جرّب تغيير معايير البحث أو مسح الفلاتر</div>
+            <a href="{{ url_for('poa.index') }}" class="btn btn-outline btn-sm">مسح الفلاتر</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+  <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;" class="no-print">
+    <div style="font-size:12px;color:var(--muted);">عرض <strong style="color:var(--text);">{{ (pagination.page-1)*pagination.per_page+1 }}</strong>–<strong style="color:var(--text);">{{ [pagination.page*pagination.per_page, pagination.total]|min }}</strong> من <strong style="color:var(--text);">{{ pagination.total }}</strong></div>
+    <div style="display:flex;gap:4px;">
+      {% set pargs = request.args.to_dict() %}
+      {% if pagination.has_prev %}{% set _=pargs.update({'page': pagination.prev_num}) %}<a href="{{ url_for('poa.index', **pargs) }}" class="pag-btn"><i class="fas fa-chevron-right"></i></a>{% endif %}
+      {% for p_num in pagination.iter_pages(left_edge=1,right_edge=1,left_current=2,right_current=2) %}
+        {% if p_num %}{% set _=pargs.update({'page': p_num}) %}<a href="{{ url_for('poa.index', **pargs) }}" class="pag-btn {% if p_num==pagination.page %}active{% endif %}">{{ p_num }}</a>
+        {% else %}<span class="pag-btn" style="cursor:default;opacity:.4;">…</span>{% endif %}
+      {% endfor %}
+      {% if pagination.has_next %}{% set _=pargs.update({'page': pagination.next_num}) %}<a href="{{ url_for('poa.index', **pargs) }}" class="pag-btn"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function highlight(text,q){if(!q||!text)return text;const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');return text.replace(re,'<mark class="hl">$1</mark>');}
+const input=document.getElementById('searchInput'),dropdown=document.getElementById('acDropdown'),clearBtn=document.getElementById('clearSearch'),icon=document.getElementById('searchIcon');
+let acTimer=null,acIndex=-1,acItems=[];
+input.addEventListener('input',()=>{const q=input.value.trim();clearBtn.style.display=q?'flex':'none';clearTimeout(acTimer);if(q.length<2){dropdown.style.display='none';return;}icon.className='fas fa-spinner fa-spin';acTimer=setTimeout(()=>fetchSuggestions(q),250);});
+async function fetchSuggestions(q){try{const res=await fetch(`/poa/api/autocomplete?q=${encodeURIComponent(q)}`);const data=await res.json();icon.className='fas fa-magnifying-glass';if(!data.length){dropdown.style.display='none';return;}acItems=data;acIndex=-1;renderDropdown(data,q);}catch(e){icon.className='fas fa-magnifying-glass';dropdown.style.display='none';}}
+function renderDropdown(items,q){dropdown.innerHTML=items.map((item,i)=>{const[name,office]=item.label.split(' — ');return `<div class="ac-item" data-idx="${i}" onmousedown="selectItem(${i})"><div class="ac-icon"><i class="fas fa-user" style="font-size:11px;"></i></div><div><div class="ac-name">${highlight(name,q)}</div><div class="ac-sub">${office||''}</div></div></div>`;}).join('');dropdown.style.display='block';}
+function selectItem(idx){const item=acItems[idx];if(!item)return;window.location=`/poa/${item.poa_id}`;}
+input.addEventListener('keydown',(e)=>{const items=dropdown.querySelectorAll('.ac-item');if(e.key==='ArrowDown'){e.preventDefault();acIndex=Math.min(acIndex+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('active',i===acIndex));}else if(e.key==='ArrowUp'){e.preventDefault();acIndex=Math.max(acIndex-1,-1);items.forEach((el,i)=>el.classList.toggle('active',i===acIndex));}else if(e.key==='Enter'&&acIndex>=0){e.preventDefault();selectItem(acIndex);}else if(e.key==='Escape'){dropdown.style.display='none';}});
+document.addEventListener('click',(e)=>{if(!e.target.closest('#searchWrapper'))dropdown.style.display='none';});
+function clearSearchInput(){input.value='';clearBtn.style.display='none';dropdown.style.display='none';input.focus();window.location='{{ url_for("poa.index") }}';}
+document.addEventListener('keydown',(e)=>{if(e.key==='/'&&document.activeElement!==input){e.preventDefault();input.focus();input.select();}});
+</script>
+{% endblock %}

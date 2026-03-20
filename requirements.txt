@@ -1,0 +1,10 @@
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+flask-login==0.6.3
+flask-migrate==4.0.7
+werkzeug==3.0.3
+openpyxl==3.1.5
+qrcode[pil]==7.4.2
+pandas==2.2.2
+pillow>=10.0.0
+gunicorn==23.0.0

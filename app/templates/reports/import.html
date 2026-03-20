@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}استيراد Excel{% endblock %}
+{% block breadcrumb %}استيراد Excel{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">استيراد بيانات من Excel</div>
+    <div class="page-sub">أضف توكيلات جديدة من ملف Excel مباشرة</div>
+  </div>
+  <a href="{{ url_for('reports.index') }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-right"></i> العودة</a>
+</div>
+
+<div class="grid-2" style="align-items:start;">
+  <div class="card">
+    <div style="font-family:var(--font-disp);font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <i class="fas fa-file-excel" style="color:var(--success);margin-left:8px;"></i> رفع ملف Excel
+    </div>
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('reports.import_excel') }}">
+      <div style="margin-bottom:16px;">
+        <label style="display:block;margin-bottom:8px;">اختر ملف Excel</label>
+        <label for="excel_file" id="dropZone"
+               style="border:2px dashed var(--border);border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;display:block;transition:var(--trans);"
+               onmouseenter="this.style.borderColor='var(--gold)'"
+               onmouseleave="this.style.borderColor='var(--border)'">
+          <i class="fas fa-cloud-arrow-up" style="font-size:32px;color:var(--muted);display:block;margin-bottom:10px;"></i>
+          <div style="font-size:14px;color:var(--muted);">اضغط لاختيار ملف أو اسحب وأفلت</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">.xlsx أو .xls فقط</div>
+          <div id="fileName" style="margin-top:10px;font-size:13px;color:var(--success);display:none;font-weight:500;"></div>
+        </label>
+        <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls"
+               style="display:none;" onchange="showFile(this)" required/>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" id="submitBtn">
+        <i class="fas fa-file-import"></i> استيراد البيانات
+      </button>
+    </form>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="card">
+      <div style="font-family:var(--font-disp);font-size:14px;font-weight:600;margin-bottom:14px;">
+        <i class="fas fa-circle-info" style="color:var(--gold);margin-left:6px;"></i> تعليمات الاستيراد
+      </div>
+      <div class="timeline">
+        <div class="timeline-item" style="padding:8px 0;">
+          <div class="tl-dot" style="background:rgba(212,175,55,.1);color:var(--gold);width:26px;height:26px;font-size:10px;flex-shrink:0;"><i class="fas fa-1"></i></div>
+          <div class="tl-content"><div class="tl-title" style="font-size:12px;">الأعمدة الإلزامية</div><div class="tl-meta">رقم التوكيل بالمكتب + موكل + رقم التوكيل + مسمى التوكيل</div></div>
+        </div>
+        <div class="timeline-item" style="padding:8px 0;">
+          <div class="tl-dot" style="background:rgba(212,175,55,.1);color:var(--gold);width:26px;height:26px;font-size:10px;flex-shrink:0;"><i class="fas fa-2"></i></div>
+          <div class="tl-content"><div class="tl-title" style="font-size:12px;">التكرار تلقائي</div><div class="tl-meta">لو رقم المكتب موجود بالفعل بيتخطاه ومش بيتكرر</div></div>
+        </div>
+        <div class="timeline-item" style="padding:8px 0;">
+          <div class="tl-dot" style="background:rgba(212,175,55,.1);color:var(--gold);width:26px;height:26px;font-size:10px;flex-shrink:0;"><i class="fas fa-3"></i></div>
+          <div class="tl-content"><div class="tl-title" style="font-size:12px;">قيم الحالة</div><div class="tl-meta">ساري / منتهي / معلق — وحالة التفعيل: مفعل / غير مفعل</div></div>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+        <a href="{{ url_for('reports.export_excel') }}" class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">
+          <i class="fas fa-download"></i> تحميل نموذج Excel
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-family:var(--font-disp);font-size:14px;font-weight:600;margin-bottom:12px;">أعمدة مدعومة</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        {% for col in ['رقم التوكيل بالمكتب','موكل','رقم التوكيل','مسمى التوكيل','الحرف','السنة','مكتب التوثيق','الحالة','تاريخ انتهاء الصلاحية','حالة التفعيل','الرقم القومي','رقم الهاتف','العنوان','المحامي'] %}
+        <span class="badge blue">{{ col }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function showFile(input) {
+  const d = document.getElementById('fileName');
+  if (input.files && input.files[0]) {
+    d.style.display = 'block';
+    d.innerHTML = '<i class="fas fa-check-circle"></i> ' + input.files[0].name;
+    document.getElementById('dropZone').style.borderColor = 'var(--success)';
+  }
+}
+document.getElementById('submitBtn').addEventListener('click', function() {
+  if (document.getElementById('excel_file').files.length > 0) {
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد…';
+    this.disabled = true;
+  }
+});
+</script>
+{% endblock %}

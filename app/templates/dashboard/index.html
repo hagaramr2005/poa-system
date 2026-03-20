@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}لوحة التحكم{% endblock %}
+{% block breadcrumb %}لوحة التحكم{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">نظرة عامة</div>
+    <div class="page-sub">مكتب المحاماة — إدارة التوكيلات</div>
+  </div>
+  <a href="{{ url_for('poa.create') }}" class="btn btn-primary btn-sm">
+    <i class="fas fa-plus"></i> توكيل جديد
+  </a>
+</div>
+
+<!-- STAT CARDS -->
+<div class="grid-4" style="margin-bottom:20px;">
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="stat-label">إجمالي التوكيلات</div>
+      <div class="stat-icon" style="background:rgba(212,175,55,.1);color:var(--gold);"><i class="fas fa-scroll"></i></div>
+    </div>
+    <div class="stat-value" id="statTotal">{{ stats.total }}</div>
+    <div class="stat-sub"><i class="fas fa-folder-open" style="color:var(--gold)"></i> جميع التوكيلات المسجلة</div>
+  </div>
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="stat-label">سارية</div>
+      <div class="stat-icon" style="background:rgba(74,222,128,.1);color:var(--success);"><i class="fas fa-circle-check"></i></div>
+    </div>
+    <div class="stat-value" id="statActive" style="color:var(--success);">{{ stats.active }}</div>
+    <div class="stat-sub"><span style="color:var(--success);">{{ ((stats.active / stats.total * 100)|round(1)) if stats.total else 0 }}%</span> من الإجمالي</div>
+  </div>
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="stat-label">منتهية</div>
+      <div class="stat-icon" style="background:rgba(248,113,113,.1);color:var(--danger);"><i class="fas fa-clock"></i></div>
+    </div>
+    <div class="stat-value" id="statExpired" style="color:var(--danger);">{{ stats.expired }}</div>
+    <div class="stat-sub"><span style="color:var(--danger);">{{ ((stats.expired / stats.total * 100)|round(1)) if stats.total else 0 }}%</span> من الإجمالي</div>
+  </div>
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="stat-label">غير مفعّلة</div>
+      <div class="stat-icon" style="background:rgba(96,165,250,.1);color:var(--info);"><i class="fas fa-toggle-off"></i></div>
+    </div>
+    <div class="stat-value" id="statInactive" style="color:var(--muted);">{{ stats.inactive }}</div>
+    <div class="stat-sub"><span style="color:var(--muted);">{{ stats.users_count }}</span> مستخدم نشط</div>
+  </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="grid-2" style="margin-bottom:20px;">
+  <div class="card">
+    <div class="section-header">
+      <div class="section-title">التوكيلات حسب الحالة</div>
+      <a href="{{ url_for('poa.index') }}" class="section-action">عرض الكل</a>
+    </div>
+    <div style="height:220px;display:flex;align-items:center;justify-content:center;">
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-header">
+      <div class="section-title">التوكيلات حسب السنة</div>
+      <a href="{{ url_for('reports.export_excel') }}" class="section-action">تصدير</a>
+    </div>
+    <div style="height:220px;">
+      <canvas id="yearChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT ACTIVITY + QUICK STATS -->
+<div class="grid-3" style="margin-bottom:20px;">
+  <div class="card">
+    <div class="section-header">
+      <div class="section-title">حالة التفعيل</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div style="width:110px;height:110px;flex-shrink:0;">
+        <canvas id="activationChart"></canvas>
+      </div>
+      <div style="flex:1;">
+        <div class="list-item" style="padding:7px 0;">
+          <div style="width:10px;height:10px;border-radius:3px;background:var(--gold);flex-shrink:0;"></div>
+          <div style="font-size:12px;">مفعّل</div>
+          <div style="margin-right:auto;font-weight:600;font-size:13px;">{{ stats.total - stats.inactive }}</div>
+        </div>
+        <div class="list-item" style="padding:7px 0;">
+          <div style="width:10px;height:10px;border-radius:3px;background:#334155;flex-shrink:0;"></div>
+          <div style="font-size:12px;">غير مفعّل</div>
+          <div style="margin-right:auto;font-weight:600;font-size:13px;">{{ stats.inactive }}</div>
+        </div>
+        {% if stats.pending %}
+        <div class="list-item" style="padding:7px 0;">
+          <div style="width:10px;height:10px;border-radius:3px;background:var(--warn);flex-shrink:0;"></div>
+          <div style="font-size:12px;">معلق</div>
+          <div style="margin-right:auto;font-weight:600;font-size:13px;">{{ stats.pending }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column:span 2;">
+    <div class="section-header">
+      <div class="section-title">آخر النشاطات</div>
+      {% if current_user.is_admin %}
+      <a href="{{ url_for('activity.index') }}" class="section-action">عرض الكل ←</a>
+      {% endif %}
+    </div>
+    <div class="timeline">
+      {% for log in stats.recent_logs %}
+      <div class="timeline-item">
+        <div class="tl-dot" style="background:{% if log.action == 'CREATE' %}rgba(74,222,128,.12);color:var(--success){% elif log.action == 'DELETE' %}rgba(248,113,113,.12);color:var(--danger){% elif log.action == 'LOGIN' %}rgba(96,165,250,.12);color:var(--info){% elif log.action == 'EXPORT' %}rgba(212,175,55,.12);color:var(--gold){% else %}rgba(148,163,184,.12);color:var(--muted){% endif %};">
+          <i class="fas fa-{% if log.action == 'CREATE' %}plus{% elif log.action == 'DELETE' %}trash{% elif log.action == 'LOGIN' %}right-to-bracket{% elif log.action == 'UPDATE' %}pen{% elif log.action == 'EXPORT' %}file-export{% else %}clock{% endif %}"></i>
+        </div>
+        <div class="tl-content">
+          <div class="tl-title">{{ log.description or log.action }}</div>
+          <div class="tl-meta">{{ log.user }}</div>
+        </div>
+        <div class="tl-time">{{ log.created_at }}</div>
+      </div>
+      {% else %}
+      <div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">لا توجد نشاطات بعد</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const gold = '#d4af37', danger = '#f87171', success = '#4ade80', info = '#60a5fa', warn = '#fb923c';
+const muted = '#94a3b8';
+const chartDefaults = {
+  plugins: { legend: { display: false } },
+  responsive: true, maintainAspectRatio: false,
+};
+
+// Status donut
+fetch('/dashboard/api/chart/status').then(r=>r.json()).then(d=>{
+  const colors = d.labels.map(l => l==='ساري'?success : l==='منتهي'?danger : warn);
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: { labels: d.labels, datasets: [{ data: d.data, backgroundColor: colors, borderWidth: 0 }] },
+    options: { ...chartDefaults, plugins: { legend: { display: true, position: 'bottom', labels: { color: muted, font: { size: 11 }, padding: 12 } } }, cutout: '65%' }
+  });
+});
+
+// Year bar
+fetch('/dashboard/api/chart/yearly').then(r=>r.json()).then(d=>{
+  new Chart(document.getElementById('yearChart'), {
+    type: 'bar',
+    data: { labels: d.labels, datasets: [{ data: d.data, backgroundColor: 'rgba(212,175,55,.7)', borderRadius: 4, hoverBackgroundColor: gold }] },
+    options: { ...chartDefaults, scales: { x: { ticks: { color: muted, font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: muted, font: { size: 10 } }, grid: { color: '#334155' } } } }
+  });
+});
+
+// Activation donut
+fetch('/dashboard/api/chart/activation').then(r=>r.json()).then(d=>{
+  const colors = d.labels.map(l => l==='مفعل'?gold:'#334155');
+  new Chart(document.getElementById('activationChart'), {
+    type: 'doughnut',
+    data: { labels: d.labels, datasets: [{ data: d.data, backgroundColor: colors, borderWidth: 0 }] },
+    options: { ...chartDefaults, cutout: '60%' }
+  });
+});
+</script>
+{% endblock %}

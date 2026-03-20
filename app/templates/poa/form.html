@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% block title %}{% if poa %}تعديل التوكيل{% else %}إضافة توكيل جديد{% endif %}{% endblock %}
+{% block breadcrumb %}{% if poa %}تعديل التوكيل{% else %}إضافة توكيل جديد{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">{% if poa %}تعديل التوكيل #{{ poa.office_number }}{% else %}إضافة توكيل جديد{% endif %}</div>
+    <div class="page-sub">{% if poa %}تعديل بيانات التوكيل المسجل{% else %}أدخل بيانات التوكيل الجديد{% endif %}</div>
+  </div>
+  <a href="{{ url_for('poa.index') }}" class="btn btn-outline btn-sm">
+    <i class="fas fa-arrow-right"></i> العودة للقائمة
+  </a>
+</div>
+
+<form method="post" enctype="multipart/form-data"
+      action="{% if poa %}{{ url_for('poa.edit', poa_id=poa.id) }}{% else %}{{ url_for('poa.create') }}{% endif %}"
+      id="poaForm">
+
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;">
+
+    <!-- ── MAIN ── -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- بيانات التوكيل -->
+      <div class="card">
+        <div style="font-family:var(--font-disp);font-size:15px;font-weight:600;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+          <i class="fas fa-scroll" style="color:var(--gold);margin-left:8px;"></i> بيانات التوكيل
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>رقم التوكيل بالمكتب <span style="color:var(--danger);">*</span></label>
+            <input class="input" type="number" name="office_number" required
+                   value="{{ form_data.get('office_number') or (poa.office_number if poa else '') }}" placeholder="١"/>
+          </div>
+          <div class="form-group">
+            <label>رقم التوكيل <span style="color:var(--danger);">*</span></label>
+            <input class="input" type="text" name="poa_number" required
+                   value="{{ form_data.get('poa_number') or (poa.poa_number if poa else '') }}" placeholder="٨٠٢"/>
+          </div>
+          <div class="form-group full">
+            <label>مسمى التوكيل <span style="color:var(--danger);">*</span></label>
+            <input class="input" type="text" name="poa_title" required
+                   value="{{ form_data.get('poa_title') or (poa.poa_title if poa else '') }}"
+                   placeholder="توكيل رسمي عام في القضايا"/>
+          </div>
+          <div class="form-group">
+            <label>الحرف</label>
+            <input class="input" type="text" name="letter" maxlength="5"
+                   value="{{ form_data.get('letter') or (poa.letter if poa else '') }}" placeholder="أ"/>
+          </div>
+          <div class="form-group">
+            <label>السنة</label>
+            <input class="input" type="number" name="year" min="1900" max="2100"
+                   value="{{ form_data.get('year') or (poa.year if poa else '') }}" placeholder="2024"/>
+          </div>
+          <div class="form-group">
+            <label>مكتب التوثيق</label>
+            <input class="input" type="text" name="notary_office"
+                   value="{{ form_data.get('notary_office') or (poa.notary_office if poa else '') }}"
+                   placeholder="مكتب توثيق رشيد"/>
+          </div>
+          <div class="form-group">
+            <label>المحامي الموكَّل</label>
+            <input class="input" type="text" name="lawyer_name"
+                   value="{{ form_data.get('lawyer_name') or (poa.lawyer_name if poa else '') }}"
+                   placeholder="اسم المحامي"/>
+          </div>
+          <div class="form-group">
+            <label>تاريخ انتهاء الصلاحية</label>
+            <input class="input" type="date" name="expiry_date"
+                   value="{{ form_data.get('expiry_date') or (poa.expiry_date.strftime('%Y-%m-%d') if poa and poa.expiry_date else '') }}"/>
+          </div>
+          <div class="form-group">
+            <label>الحالة</label>
+            <select class="input" name="status">
+              {% for s in ['ساري','منتهي','معلق'] %}
+              <option value="{{ s }}" {% if (form_data.get('status') or (poa.status if poa else 'ساري')) == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>حالة التفعيل</label>
+            <select class="input" name="activation_status">
+              <option value="مفعل"     {% if (form_data.get('activation_status') or (poa.activation_status if poa else 'مفعل')) == 'مفعل' %}selected{% endif %}>مفعّل</option>
+              <option value="غير مفعل" {% if (form_data.get('activation_status') or (poa.activation_status if poa else '')) == 'غير مفعل' %}selected{% endif %}>غير مفعّل</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>ملاحظات</label>
+            <textarea class="input" name="notes" rows="2" placeholder="أي ملاحظات إضافية…">{{ form_data.get('notes') or (poa.notes if poa else '') }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- الموكلون -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+          <div style="font-family:var(--font-disp);font-size:15px;font-weight:600;">
+            <i class="fas fa-users" style="color:var(--gold);margin-left:8px;"></i> الموكلون
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" onclick="addClient()">
+            <i class="fas fa-plus"></i> إضافة موكل آخر
+          </button>
+        </div>
+
+        <div id="clientsContainer">
+          {% if poa and poa.clients.count() > 0 %}
+            {% for client in poa.clients.all() %}
+            <div class="client-block" data-index="{{ loop.index0 }}" style="border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;position:relative;">
+              {% if loop.index0 > 0 %}
+              <button type="button" class="icon-btn" style="position:absolute;top:10px;left:10px;color:var(--danger);" onclick="removeClient(this)">
+                <i class="fas fa-xmark"></i>
+              </button>
+              {% endif %}
+              {% if loop.first %}
+              <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">
+                <i class="fas fa-star" style="font-size:9px;"></i> الموكل الرئيسي
+              </div>
+              {% else %}
+              <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">موكل {{ loop.index }}</div>
+              {% endif %}
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label>الاسم الكامل <span style="color:var(--danger);">*</span></label>
+                  <input class="input" type="text" name="client_{{ loop.index0 }}_name"
+                         value="{{ client.full_name }}" required placeholder="أحمد محمد علي"/>
+                </div>
+                <div class="form-group">
+                  <label>الرقم القومي</label>
+                  <input class="input" type="text" name="client_{{ loop.index0 }}_national_id"
+                         value="{{ client.national_id or '' }}" maxlength="14" placeholder="٢٩٨٠١٠١٢٣٤٥٦٧٨"/>
+                </div>
+                <div class="form-group">
+                  <label>رقم الهاتف</label>
+                  <input class="input" type="tel" name="client_{{ loop.index0 }}_phone"
+                         value="{{ client.phone or '' }}" placeholder="٠١٠٠٠٠٠٠٠٠٠"/>
+                </div>
+                <div class="form-group full">
+                  <label>العنوان</label>
+                  <input class="input" type="text" name="client_{{ loop.index0 }}_address"
+                         value="{{ client.address or '' }}" placeholder="القاهرة، مصر الجديدة"/>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <!-- موكل واحد افتراضي -->
+          <div class="client-block" data-index="0" style="border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;position:relative;">
+            <div style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">
+              <i class="fas fa-star" style="font-size:9px;"></i> الموكل الرئيسي
+            </div>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>الاسم الكامل <span style="color:var(--danger);">*</span></label>
+                <input class="input" type="text" name="client_0_name"
+                       value="{{ form_data.get('client_0_name','') }}" required placeholder="أحمد محمد علي"/>
+              </div>
+              <div class="form-group">
+                <label>الرقم القومي</label>
+                <input class="input" type="text" name="client_0_national_id"
+                       value="{{ form_data.get('client_0_national_id','') }}" maxlength="14" placeholder="٢٩٨٠١٠١٢٣٤٥٦٧٨"/>
+              </div>
+              <div class="form-group">
+                <label>رقم الهاتف</label>
+                <input class="input" type="tel" name="client_0_phone"
+                       value="{{ form_data.get('client_0_phone','') }}" placeholder="٠١٠٠٠٠٠٠٠٠٠"/>
+              </div>
+              <div class="form-group full">
+                <label>العنوان</label>
+                <input class="input" type="text" name="client_0_address"
+                       value="{{ form_data.get('client_0_address','') }}" placeholder="القاهرة، مصر الجديدة"/>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── SIDEBAR ── -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- رفع مستند -->
+      <div class="card">
+        <div style="font-family:var(--font-disp);font-size:14px;font-weight:600;margin-bottom:14px;">
+          <i class="fas fa-paperclip" style="color:var(--gold);margin-left:6px;"></i> مستند مرفق
+        </div>
+        {% if poa and poa.attachment_filename %}
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+          <i class="fas fa-file" style="color:var(--gold);font-size:18px;"></i>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ poa.attachment_original_name }}</div>
+            <div style="font-size:11px;color:var(--muted);">مرفق حالياً</div>
+          </div>
+          <a href="{{ url_for('poa.download_attachment', poa_id=poa.id) }}" class="icon-btn"><i class="fas fa-download"></i></a>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">رفع ملف جديد سيستبدل الحالي</div>
+        {% endif %}
+        <label for="attachment" style="border:2px dashed var(--border);border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;transition:var(--trans);display:block;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+          <i class="fas fa-cloud-arrow-up" style="font-size:24px;color:var(--muted);margin-bottom:8px;display:block;"></i>
+          <div style="font-size:13px;color:var(--muted);">اضغط لرفع ملف</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">PDF، صورة، Word — حتى 16MB</div>
+        </label>
+        <input type="file" id="attachment" name="attachment" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx" style="display:none;" onchange="showFileName(this)"/>
+        <div id="fileNameDisplay" style="font-size:12px;color:var(--success);margin-top:8px;display:none;"></div>
+      </div>
+
+      <!-- حفظ -->
+      <div class="card">
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;">
+          <i class="fas fa-floppy-disk"></i>
+          {% if poa %}حفظ التعديلات{% else %}حفظ التوكيل{% endif %}
+        </button>
+        <a href="{{ url_for('poa.index') }}" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px;">
+          إلغاء
+        </a>
+      </div>
+
+      <!-- معلومات -->
+      <div class="card">
+        <div style="font-family:var(--font-disp);font-size:14px;font-weight:600;margin-bottom:12px;">تعليمات</div>
+        <div class="list-item"><i class="fas fa-circle-info" style="color:var(--gold);font-size:12px;width:16px;"></i><span style="font-size:12px;">الحقول بعلامة * إلزامية</span></div>
+        <div class="list-item"><i class="fas fa-users" style="color:var(--info);font-size:12px;width:16px;"></i><span style="font-size:12px;">يمكن إضافة أكثر من موكل</span></div>
+        <div class="list-item"><i class="fas fa-shield-halved" style="color:var(--success);font-size:12px;width:16px;"></i><span style="font-size:12px;">يُسجَّل اسم المُضيف تلقائياً</span></div>
+        {% if poa %}
+        <div class="list-item"><i class="fas fa-clock" style="color:var(--muted);font-size:12px;width:16px;"></i><span style="font-size:12px;color:var(--muted);">أُضيف: {{ poa.created_at.strftime('%Y-%m-%d') if poa.created_at else '—' }}</span></div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let clientCount = {{ poa.clients.count() if poa else 1 }};
+
+function addClient() {
+  const idx = clientCount;
+  const container = document.getElementById('clientsContainer');
+  const div = document.createElement('div');
+  div.className = 'client-block';
+  div.dataset.index = idx;
+  div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;position:relative;';
+  div.innerHTML = `
+    <button type="button" class="icon-btn" style="position:absolute;top:10px;left:10px;color:var(--danger);" onclick="removeClient(this)">
+      <i class="fas fa-xmark"></i>
+    </button>
+    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">موكل ${idx+1}</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>الاسم الكامل <span style="color:var(--danger);">*</span></label>
+        <input class="input" type="text" name="client_${idx}_name" required placeholder="أحمد محمد علي"/>
+      </div>
+      <div class="form-group">
+        <label>الرقم القومي</label>
+        <input class="input" type="text" name="client_${idx}_national_id" maxlength="14" placeholder="٢٩٨٠١٠١٢٣٤٥٦٧٨"/>
+      </div>
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input class="input" type="tel" name="client_${idx}_phone" placeholder="٠١٠٠٠٠٠٠٠٠٠"/>
+      </div>
+      <div class="form-group full">
+        <label>العنوان</label>
+        <input class="input" type="text" name="client_${idx}_address" placeholder="القاهرة، مصر الجديدة"/>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  clientCount++;
+}
+
+function removeClient(btn) {
+  btn.closest('.client-block').remove();
+  reindexClients();
+}
+
+function reindexClients() {
+  document.querySelectorAll('.client-block').forEach((block, i) => {
+    block.dataset.index = i;
+    block.querySelectorAll('input').forEach(inp => {
+      inp.name = inp.name.replace(/client_\d+_/, `client_${i}_`);
+    });
+  });
+  clientCount = document.querySelectorAll('.client-block').length;
+}
+
+function showFileName(input) {
+  const d = document.getElementById('fileNameDisplay');
+  if (input.files && input.files[0]) {
+    d.style.display = 'block';
+    d.innerHTML = '<i class="fas fa-check-circle"></i> ' + input.files[0].name;
+  }
+}
+</script>
+{% endblock %}

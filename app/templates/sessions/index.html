@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}الجلسات النشطة{% endblock %}
+{% block breadcrumb %}الجلسات النشطة{% endblock %}
+
+{% block extra_css %}
+<style>
+.session-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  transition: var(--trans);
+  animation: fadeIn .25s ease both;
+}
+.session-card:hover { border-color: var(--border2); }
+.session-card.current { border-color: rgba(212,175,55,.4); background: rgba(212,175,55,.03); }
+
+.session-icon {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.session-icon.desktop { background: rgba(96,165,250,.1); color: var(--info); }
+.session-icon.mobile  { background: rgba(74,222,128,.1);  color: var(--success); }
+
+.session-info { flex: 1; min-width: 0; }
+.session-device { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.session-meta   { font-size: 12px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.session-meta span { display: flex; align-items: center; gap: 5px; }
+
+.session-badge {
+  font-size: 10px; font-weight: 700; padding: 3px 8px;
+  border-radius: 99px; white-space: nowrap;
+}
+.session-badge.current-badge { background: rgba(212,175,55,.15); color: var(--gold); border: 1px solid rgba(212,175,55,.3); }
+.session-badge.active-badge  { background: rgba(74,222,128,.1);  color: var(--success); border: 1px solid rgba(74,222,128,.2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">الجلسات النشطة</div>
+    <div class="page-sub">{{ sessions|length }} جهاز متصل حالياً</div>
+  </div>
+  {% if sessions|length > 1 %}
+  <form method="post" action="{{ url_for('sessions.revoke_all') }}">
+    <button type="submit" class="btn btn-danger btn-sm"
+            onclick="return confirm('هل تريد إنهاء جميع الجلسات الأخرى؟')">
+      <i class="fas fa-shield-halved"></i> إنهاء كل الجلسات الأخرى
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<div style="max-width:700px;">
+
+  {% if not sessions %}
+  <div class="card" style="text-align:center;padding:48px;">
+    <i class="fas fa-laptop" style="font-size:32px;color:var(--muted);display:block;margin-bottom:12px;opacity:.4;"></i>
+    <div style="font-size:15px;font-weight:600;margin-bottom:6px;">لا توجد جلسات نشطة</div>
+    <div style="font-size:13px;color:var(--muted);">سجّل الدخول من جهاز لتظهر هنا</div>
+  </div>
+  {% endif %}
+
+  {% for s in sessions %}
+  {% set is_mobile = 'Android' in (s.device_name or '') or 'iPhone' in (s.device_name or '') or 'iPad' in (s.device_name or '') %}
+  {% set is_current = s.session_token == current_token %}
+  <div class="session-card {% if is_current %}current{% endif %}" style="animation-delay:{{ loop.index0 * 0.06 }}s;">
+
+    <div class="session-icon {% if is_mobile %}mobile{% else %}desktop{% endif %}">
+      <i class="fas fa-{% if is_mobile %}mobile-screen{% else %}laptop{% endif %}"></i>
+    </div>
+
+    <div class="session-info">
+      <div class="session-device">
+        {{ s.device_name or 'جهاز غير معروف' }}
+        {% if is_current %}
+        <span class="session-badge current-badge" style="margin-right:8px;"><i class="fas fa-circle" style="font-size:6px;"></i> الجهاز الحالي</span>
+        {% else %}
+        <span class="session-badge active-badge"><i class="fas fa-circle" style="font-size:6px;"></i> نشط</span>
+        {% endif %}
+      </div>
+      <div class="session-meta">
+        <span><i class="fas fa-globe" style="color:var(--muted);"></i> {{ s.ip_address or '—' }}</span>
+        <span><i class="fas fa-clock" style="color:var(--muted);"></i> آخر نشاط: {{ s.last_active.strftime('%Y-%m-%d %H:%M') if s.last_active else '—' }}</span>
+        <span><i class="fas fa-calendar-plus" style="color:var(--muted);"></i> تسجيل: {{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '—' }}</span>
+      </div>
+    </div>
+
+    {% if not is_current %}
+    <form method="post" action="{{ url_for('sessions.revoke', session_id=s.id) }}" style="flex-shrink:0;">
+      <button type="submit" class="btn btn-danger btn-sm"
+              onclick="return confirm('إنهاء هذه الجلسة؟')">
+        <i class="fas fa-xmark"></i> إنهاء
+      </button>
+    </form>
+    {% else %}
+    <div style="flex-shrink:0;">
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm">
+        <i class="fas fa-right-from-bracket"></i> خروج
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="card" style="margin-top:20px;background:rgba(96,165,250,.05);border-color:rgba(96,165,250,.2);">
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <i class="fas fa-circle-info" style="color:var(--info);margin-top:2px;font-size:15px;flex-shrink:0;"></i>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;">
+        لو شايف جهاز مش بتاعك في القائمة دي، اضغط <strong style="color:var(--danger);">إنهاء</strong> فوراً
+        وغيّر كلمة المرور من <a href="{{ url_for('users.change_password') }}" style="color:var(--gold);">هنا</a>.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

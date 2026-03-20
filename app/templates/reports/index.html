@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}التقارير{% endblock %}
+{% block breadcrumb %}التقارير والتصدير{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">التقارير والتصدير</div>
+    <div class="page-sub">صدّر البيانات بالفلاتر اللي تحتاجها</div>
+  </div>
+</div>
+
+<div class="grid-2" style="align-items:start;">
+
+  <!-- ── فلتر مخصص ── -->
+  <div class="card">
+    <div style="font-family:var(--font-disp);font-size:15px;font-weight:600;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <i class="fas fa-filter" style="color:var(--gold);margin-left:8px;"></i> تصدير مخصص
+    </div>
+
+    <form action="{{ url_for('reports.export_excel') }}" method="get">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- اسم الموكل -->
+        <div class="form-group">
+          <label>بحث شامل <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none;">(اسم / رقم قومي / هاتف)</span></label>
+          <div style="position:relative;">
+            <i class="fas fa-user" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;"></i>
+            <input type="text" name="q" class="input" style="padding-right:34px;" placeholder="اسم أو رقم قومي أو هاتف…"/>
+          </div>
+        </div>
+
+        <!-- رقم التوكيل بالمكتب -->
+        <div class="form-group">
+          <label>رقم التوكيل بالمكتب <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none;">(رقم محدد بالضبط)</span></label>
+          <div style="position:relative;">
+            <i class="fas fa-hashtag" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;"></i>
+            <input type="number" name="office_number" class="input" style="padding-right:34px;" placeholder="مثال: 15"/>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <!-- السنة -->
+          <div class="form-group">
+            <label>السنة</label>
+            <select name="year" class="input">
+              <option value="">الكل</option>
+              {% for y in range(2025, 1989, -1) %}
+              <option value="{{ y }}">{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- الحالة -->
+          <div class="form-group">
+            <label>الحالة</label>
+            <select name="status" class="input">
+              <option value="">الكل</option>
+              <option value="ساري">ساري</option>
+              <option value="منتهي">منتهي</option>
+              <option value="معلق">معلق</option>
+            </select>
+          </div>
+
+          <!-- حالة التفعيل -->
+          <div class="form-group">
+            <label>حالة التفعيل</label>
+            <select name="activation_status" class="input">
+              <option value="">الكل</option>
+              <option value="مفعل">مفعّل</option>
+              <option value="غير مفعل">غير مفعّل</option>
+            </select>
+          </div>
+
+          <!-- الحرف -->
+          <div class="form-group">
+            <label>الحرف</label>
+            <select name="letter" class="input">
+              <option value="">الكل</option>
+              {% for l in ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي','ى'] %}
+              <option value="{{ l }}">{{ l }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- معاينة عدد النتائج -->
+        <div id="previewCount" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-circle-info" style="color:var(--gold);"></i>
+          <span id="previewText">اضغط "معاينة" لمعرفة عدد النتائج قبل التصدير</span>
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn btn-outline" style="flex:1;justify-content:center;" onclick="previewCount(this.form)">
+            <i class="fas fa-eye"></i> معاينة
+          </button>
+          <button type="submit" class="btn btn-primary" style="flex:2;justify-content:center;">
+            <i class="fas fa-file-excel"></i> تصدير Excel
+          </button>
+        </div>
+
+      </div>
+    </form>
+  </div>
+
+  <!-- ── تصدير سريع ── -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="card">
+      <div style="font-family:var(--font-disp);font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+        <i class="fas fa-bolt" style="color:var(--gold);margin-left:8px;"></i> تصدير سريع
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="{{ url_for('reports.export_excel') }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="fas fa-file-excel" style="color:var(--success);width:18px;"></i>
+          كل التوكيلات ({{ total }} توكيل)
+        </a>
+        <a href="{{ url_for('reports.export_excel', status='ساري') }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="fas fa-circle-check" style="color:var(--success);width:18px;"></i>
+          السارية فقط ({{ active }} توكيل)
+        </a>
+        <a href="{{ url_for('reports.export_excel', status='منتهي') }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="fas fa-clock" style="color:var(--danger);width:18px;"></i>
+          المنتهية فقط ({{ expired }} توكيل)
+        </a>
+        <a href="{{ url_for('reports.export_excel', activation_status='مفعل') }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="fas fa-toggle-on" style="color:var(--gold);width:18px;"></i>
+          المفعّلة فقط ({{ active_only }} توكيل)
+        </a>
+        <a href="{{ url_for('reports.export_excel', activation_status='غير مفعل') }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="fas fa-toggle-off" style="color:var(--muted);width:18px;"></i>
+          غير المفعّلة ({{ inactive }} توكيل)
+        </a>
+      </div>
+    </div>
+
+    <!-- إرشادات -->
+    <div class="card">
+      <div style="font-family:var(--font-disp);font-size:14px;font-weight:600;margin-bottom:12px;">
+        <i class="fas fa-circle-info" style="color:var(--gold);margin-left:6px;"></i> إرشادات
+      </div>
+      <div class="timeline">
+        <div class="timeline-item" style="padding:8px 0;">
+          <div class="tl-dot" style="background:rgba(212,175,55,.1);color:var(--gold);width:26px;height:26px;font-size:10px;"><i class="fas fa-user"></i></div>
+          <div class="tl-content"><div class="tl-title" style="font-size:12px;">بحث الاسم جزئي</div><div class="tl-meta">تقدر تكتب جزء من الاسم — "احمد" يجيب كل الأحمدات</div></div>
+        </div>
+        <div class="timeline-item" style="padding:8px 0;">
+          <div class="tl-dot" style="background:rgba(96,165,250,.1);color:var(--info);width:26px;height:26px;font-size:10px;"><i class="fas fa-hashtag"></i></div>
+          <div class="tl-content"><div class="tl-title" style="font-size:12px;">رقم المكتب بالضبط</div><div class="tl-meta">لازم تكتب الرقم كامل — 15 يجيب التوكيل رقم 15 بس</div></div>
+        </div>
+        <div class="timeline-item" style="padding:8px 0;">
+          <div class="tl-dot" style="background:rgba(74,222,128,.1);color:var(--success);width:26px;height:26px;font-size:10px;"><i class="fas fa-layer-group"></i></div>
+          <div class="tl-content"><div class="tl-title" style="font-size:12px;">الفلاتر تتجمع</div><div class="tl-meta">تقدر تختار سنة + حالة + اسم في نفس الوقت</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewCount(form) {
+  const data = new FormData(form);
+  const params = new URLSearchParams();
+  for (const [k, v] of data.entries()) {
+    if (v) params.append(k, v);
+  }
+  params.append('preview', '1');
+
+  const btn = form.querySelector('[onclick]');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحساب…';
+  btn.disabled = true;
+
+  fetch('/reports/preview?' + params.toString())
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('previewText');
+      if (d.count === 0) {
+        el.innerHTML = '<span style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> لا توجد نتائج بهذه الفلاتر</span>';
+      } else {
+        el.innerHTML = `<span style="color:var(--success)"><i class="fas fa-check-circle"></i> سيتم تصدير <strong>${d.count}</strong> توكيل</span>`;
+      }
+    })
+    .catch(() => {
+      document.getElementById('previewText').textContent = 'تعذّر الحساب، جرّب مباشرة';
+    })
+    .finally(() => {
+      btn.innerHTML = '<i class="fas fa-eye"></i> معاينة';
+      btn.disabled = false;
+    });
+}
+</script>
+{% endblock %}
